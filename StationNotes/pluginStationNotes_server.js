@@ -97,17 +97,17 @@ function watchFile() {
 }
 
 const webserverPort = config.webserver.webserverPort || 8080;
-const externalWsUrl = `ws://127.0.0.1:${webserverPort}`;
+const externalWsPath = '/data_plugins';
+const externalWsUrl = `ws://127.0.0.1:${webserverPort}${externalWsPath}`;
 
 // WebSocket connection to /data_plugins
 async function extraWebSocket() {
     if (!extraSocket || extraSocket.readyState === WebSocket.CLOSED) {
         try {
-            extraSocket = new WebSocket(`${externalWsUrl}/data_plugins`);
+            extraSocket = new WebSocket(`${externalWsUrl}`);
 
             extraSocket.onopen = () => {
-                logInfo(`${pluginName}: Connected to /data_plugins`);
-                sendToClient();
+                logInfo(`${pluginName}: Connected to ${externalWsPath}`);
             };
 
             extraSocket.onerror = (err) => {
@@ -115,8 +115,8 @@ async function extraWebSocket() {
             };
 
             extraSocket.onclose = () => {
-                logInfo(`${pluginName}: WebSocket closed (/data_plugins)`);
-                setTimeout(extraWebSocket, 2000);
+                logInfo(`${pluginName}: WebSocket closed (${externalWsPath})`);
+                setTimeout(extraWebSocket, 8000);
             };
 
             // Handle incoming messages from client
@@ -135,7 +135,7 @@ async function extraWebSocket() {
 
         } catch (error) {
             logError(`${pluginName}: Failed to set up WebSocket:`, error.message);
-            setTimeout(extraWebSocket, 2000);
+            setTimeout(extraWebSocket, 8000);
         }
     }
 }
