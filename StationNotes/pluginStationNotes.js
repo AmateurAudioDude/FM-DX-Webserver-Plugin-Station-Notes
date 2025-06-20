@@ -3,6 +3,8 @@
     https://github.com/AmateurAudioDude/FM-DX-Webserver-Plugin-Station-Notes
 */
 
+'use strict';
+
 (() => {
 
     const pluginName = "Station Notes";
