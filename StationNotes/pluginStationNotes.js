@@ -18,7 +18,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         let noteIcon = 'fa-note-sticky';
-        let noteIconOffset = -15;
+        let noteIconOffset = -10;
         let debug = false;
         let tooltipMap = {};
         let dataFreq, freq, stationTooltipHTML;
@@ -102,6 +102,7 @@
             icon.style.opacity = '0.5';
             icon.style.transition = 'opacity 0.3s';
             icon.style.filter = 'brightness(1)';
+            icon.style.padding = '8px';
 
             const freqContainer = document.querySelector('.wrapper-outer #wrapper #freq-container');
             if (freqContainer) {
@@ -165,26 +166,35 @@
 
         // Open popup on click
         document.addEventListener('click', function (event) {
-            let popupId = "#popup-panel-mobile-settings";
+            const popupId = "#popup-panel-mobile-settings";
             const icon = document.getElementById('station-notes-plugin');
             const popup = document.querySelector(popupId);
+            const textInput = document.getElementById('commandinput');
 
             if (icon && event.target === icon) {
+                // Unfocus input
+                requestAnimationFrame(() => {
+                    if (document.activeElement === textInput) textInput.blur();
+                });
+
                 const popupVisible = popup && popup.style.display !== 'none' && popup.offsetParent !== null;
                 const newTitle = `Notes for ${freq} MHz`;
                 const newContent = `<p style="text-align: center;">${stationTooltipHTML}</p>`;
                 if (popupVisible) {
-                    // Update content without toggling popup
                     const titleEl = popup.querySelector('.popup-header .color-4');
                     const contentEl = popup.querySelector('.popup-content');
                     if (titleEl) titleEl.textContent = newTitle;
                     if (contentEl) contentEl.innerHTML = newContent;
+
                     event.stopPropagation();
                     event.preventDefault();
                     return;
                 }
 
                 if (displayMethod === 'popup' || displayMethod === 'tooltip-popup') popupMethod(popupId, newTitle, newContent);
+
+                event.stopPropagation();
+                event.preventDefault();
             }
         });
 
