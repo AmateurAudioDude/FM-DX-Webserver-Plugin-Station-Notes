@@ -7,6 +7,8 @@
 
 (() => {
 
+    const displayMethod = 'popup' // 'tooltip', 'popup', 'tooltip-popup'
+
     const pluginName = "Station Notes";
     const pluginVersion = '1.0.0';
     const pluginHomepageUrl = "https://github.com/AmateurAudioDude/FM-DX-Webserver-Plugin-Station-Notes";
@@ -15,10 +17,11 @@
     const CHECK_FOR_UPDATES = true;
 
     document.addEventListener('DOMContentLoaded', () => {
+        let noteIcon = 'fa-note-sticky';
+        let noteIconOffset = -15;
         let debug = false;
-        let dataFreq;
-        let freq;
         let tooltipMap = {};
+        let dataFreq, freq, stationTooltipHTML;
 
         const currentURL = new URL(window.location.href);
         const WebserverURL = currentURL.hostname;
@@ -73,26 +76,27 @@
             });
 
             // Remove existing icon
-            const oldIcon = freqHeading.querySelector('.fa-circle-info');
+            const oldIcon = freqHeading.querySelector('.' + noteIcon);
             if (oldIcon) oldIcon.remove();
 
             if (!rawTooltip) return;
 
             // Convert markdown to HTML
-            const stationTooltipHTML = simpleMarkdownToHtml(rawTooltip);
+            stationTooltipHTML = simpleMarkdownToHtml(rawTooltip);
 
             // Rebuild icon
             const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
             const windowInnerHeight = window.innerHeight;
             const icon = document.createElement('i');
-            icon.classList.add('fa-solid', 'fa-circle-info');
+            icon.classList.add('fa-solid', noteIcon);
 
             icon.setAttribute('data-tooltip', stationTooltipHTML);
 
+            icon.id = 'station-notes-plugin';
             icon.style.position = 'absolute';
-            icon.style.width = windowInnerHeight > 720 ? '36px' : '24px';
+            icon.style.width = windowInnerHeight > 720 ? '32px' : '24px';
             icon.style.top = '50%';
-            icon.style.transform = isFirefox && windowInnerHeight < 720 ? 'translateY(-52%)' : isFirefox ? 'translateY(-42%)' : 'translateY(-40%)';
+            icon.style.transform = isFirefox && windowInnerHeight < 720 ? `translateY(${-52 + noteIconOffset}%)` : isFirefox ? `translateY(${-42 + noteIconOffset}%)` : `translateY(${-40 + noteIconOffset}%)`;
             icon.style.fontSize = windowInnerHeight > 720 ? '18px' : '14px';
             icon.style.visibility = 'visible';
             icon.style.opacity = '0.5';
@@ -116,10 +120,20 @@
               }
             }
 
+            icon.addEventListener('mouseenter', () => {
+              icon.style.opacity = '1';
+              icon.style.filter = 'brightness(1.5)';
+            });
+
+            icon.addEventListener('mouseleave', () => {
+              icon.style.opacity = '1';
+              icon.style.filter = 'brightness(1.1)';
+            });
+
             freqHeading.style.position = 'relative';
             freqHeading.appendChild(icon);
 
-            if (typeof initTooltips === 'function') initTooltips(icon);
+            if (displayMethod === 'tooltip' || displayMethod === 'tooltip-popup') if (typeof initTooltips === 'function') initTooltips(icon);
         }
 
         function simpleMarkdownToHtml(text) {
@@ -137,6 +151,42 @@
                 // New lines \n or \r\n to <br>
                 .replace(/\r?\n/g, '<br>');
         }
+
+        // Popup using togglePopup from modal.js
+        function popupMethod(selector, title, contentHtml) {
+            const $popup = $(selector);
+            const $header = $popup.find(".popup-header");
+            const $title = $header.find("p.color-4");
+            if ($title.length && !$title.hasClass("popup-title")) $title.addClass("popup-title");
+            $popup.find(".popup-title").text(title);
+            $popup.find(".popup-content").html(contentHtml);
+            togglePopup(selector);
+        }
+
+        // Open popup on click
+        document.addEventListener('click', function (event) {
+            let popupId = "#popup-panel-mobile-settings";
+            const icon = document.getElementById('station-notes-plugin');
+            const popup = document.querySelector(popupId);
+
+            if (icon && event.target === icon) {
+                const popupVisible = popup && popup.style.display !== 'none' && popup.offsetParent !== null;
+                const newTitle = `Notes for ${freq} MHz`;
+                const newContent = `<p style="text-align: center;">${stationTooltipHTML}</p>`;
+                if (popupVisible) {
+                    // Update content without toggling popup
+                    const titleEl = popup.querySelector('.popup-header .color-4');
+                    const contentEl = popup.querySelector('.popup-content');
+                    if (titleEl) titleEl.textContent = newTitle;
+                    if (contentEl) contentEl.innerHTML = newContent;
+                    event.stopPropagation();
+                    event.preventDefault();
+                    return;
+                }
+
+                if (displayMethod === 'popup' || displayMethod === 'tooltip-popup') popupMethod(popupId, newTitle, newContent);
+            }
+        });
 
         function getFreq() {
             const targetNode = document.getElementById('data-frequency');
@@ -176,10 +226,10 @@
             if (freqHeading) {
                 freqHeading.style.position = 'relative';
 
-                if (freqHeading.querySelector('.fa-circle-info')) return;
+                if (freqHeading.querySelector('.' + noteIcon)) return;
 
                 const infoIcon = document.createElement('i');
-                infoIcon.classList.add('fa-solid', 'fa-circle-info', 'tooltip');
+                infoIcon.classList.add('fa-solid', noteIcon, 'tooltip');
                 infoIcon.style.position = 'absolute';
                 infoIcon.style.width = '36px';
                 infoIcon.style.top = '50%';
