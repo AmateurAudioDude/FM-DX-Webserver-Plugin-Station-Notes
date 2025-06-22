@@ -19,6 +19,10 @@ This plugin displays a note icon above the current frequency, displaying a popup
 
 
 
+v1.0.1
+------
+* Changes to initial popup positioning
+
 v1.0.0
 ------
 * Intitial release

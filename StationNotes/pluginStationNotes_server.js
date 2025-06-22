@@ -1,5 +1,5 @@
 /*
-    Station Notes v1.0.0 by AAD
+    Station Notes v1.0.1 by AAD
     https://github.com/AmateurAudioDude/FM-DX-Webserver-Plugin-Station-Notes
 
     //// Server-side code ////

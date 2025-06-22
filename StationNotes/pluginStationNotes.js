@@ -1,5 +1,5 @@
 /*
-    Station Notes v1.0.0 by AAD
+    Station Notes v1.0.1 by AAD
     https://github.com/AmateurAudioDude/FM-DX-Webserver-Plugin-Station-Notes
 */
 
@@ -7,10 +7,10 @@
 
 (() => {
 
-    const displayMethod = 'popup' // 'tooltip', 'popup', 'tooltip-popup'
+    const displayMethod = 'popup' // 'popup', 'tooltip', 'tooltip-popup'
 
     const pluginName = "Station Notes";
-    const pluginVersion = '1.0.0';
+    const pluginVersion = '1.0.1';
     const pluginHomepageUrl = "https://github.com/AmateurAudioDude/FM-DX-Webserver-Plugin-Station-Notes";
     const pluginUpdateUrl = "https://raw.githubusercontent.com/AmateurAudioDude/FM-DX-Webserver-Plugin-Station-Notes/refs/heads/main/StationNotes/pluginStationNotes.js";
     const pluginSetupOnlyNotify = true;
@@ -20,8 +20,14 @@
         let noteIcon = 'fa-note-sticky';
         let noteIconOffset = -10;
         let debug = false;
-        let tooltipMap = {};
-        let dataFreq, freq, stationTooltipHTML;
+        let firstPopup = false;
+        let usePopup = false;
+        let useTooltip = false;
+        let notesMap = {};
+        let dataFreq, freq, stationNotesHTML;
+
+        if (displayMethod.includes('popup')) usePopup = true;
+        if (displayMethod.includes('tooltip')) useTooltip = true;
 
         const currentURL = new URL(window.location.href);
         const WebserverURL = currentURL.hostname;
@@ -44,30 +50,30 @@
                 const message = JSON.parse(event.data);
 
                 if (message.type === 'station-notes' && typeof message.value === 'object') {
-                    // Reset tooltipMap and update with new data
-                    tooltipMap = {};
-                    Object.assign(tooltipMap, message.value);
-                    console.log(`[${pluginName}] tooltipMap updated with ${Object.keys(tooltipMap).length} entries`);
-                    updateTooltip(freq);
+                    // Reset notesMap and update with new data
+                    notesMap = {};
+                    Object.assign(notesMap, message.value);
+                    console.log(`[${pluginName}] notesMap updated with ${Object.keys(notesMap).length} entries`);
+                    updateNotes(freq);
                 }
             } catch (err) {
                 console.error(`[${pluginName}] Failed to parse message:`, err);
             }
         });
 
-        function updateTooltip(freq) {
+        function updateNotes(freq) {
             const freqHeading = document.querySelector('.wrapper-outer #wrapper #freq-container h2');
             if (!freqHeading) return;
 
-            let rawTooltip = tooltipMap[freq];
+            let rawNotes = notesMap[freq];
 
-            if (rawTooltip === undefined && typeof freq === 'number') {
+            if (rawNotes === undefined && typeof freq === 'number') {
                 const freqStr = freq.toString();
                 const freqFixed1 = freq.toFixed(1);
                 const freqFixed2 = freq.toFixed(2);
                 const freqFixed3 = freq.toFixed(3);
 
-                rawTooltip = tooltipMap[freqStr] ?? tooltipMap[freqFixed1] ?? tooltipMap[freqFixed2] ?? tooltipMap[freqFixed3];
+                rawNotes = notesMap[freqStr] ?? notesMap[freqFixed1] ?? notesMap[freqFixed2] ?? notesMap[freqFixed3];
             }
 
             // Remove existing tooltip
@@ -79,10 +85,10 @@
             const oldIcon = freqHeading.querySelector('.' + noteIcon);
             if (oldIcon) oldIcon.remove();
 
-            if (!rawTooltip) return;
+            if (!rawNotes) return;
 
             // Convert markdown to HTML
-            stationTooltipHTML = simpleMarkdownToHtml(rawTooltip);
+            stationNotesHTML = simpleMarkdownToHtml(rawNotes);
 
             // Rebuild icon
             const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
@@ -90,7 +96,8 @@
             const icon = document.createElement('i');
             icon.classList.add('fa-solid', noteIcon);
 
-            icon.setAttribute('data-tooltip', stationTooltipHTML);
+            if (useTooltip) icon.setAttribute('data-tooltip', stationNotesHTML);
+            icon.setAttribute('aria-label', stationNotesHTML.replace(/\.(?:<[^>]*>)*<br\s*\/?>/gi, '. ').replace(/<[^>]*>/g, '').trim());
 
             icon.id = 'station-notes-plugin';
             icon.style.position = 'absolute';
@@ -134,7 +141,7 @@
             freqHeading.style.position = 'relative';
             freqHeading.appendChild(icon);
 
-            if (displayMethod === 'tooltip' || displayMethod === 'tooltip-popup') if (typeof initTooltips === 'function') initTooltips(icon);
+            if (useTooltip) if (typeof initTooltips === 'function') initTooltips(icon);
         }
 
         function simpleMarkdownToHtml(text) {
@@ -179,7 +186,18 @@
 
                 const popupVisible = popup && popup.style.display !== 'none' && popup.offsetParent !== null;
                 const newTitle = `Notes for ${freq} MHz`;
-                const newContent = `<p style="text-align: center;">${stationTooltipHTML}</p>`;
+                const newContent = `<p style="text-align: center;">${stationNotesHTML}</p>`;
+
+                // Offset formula based on new lines and number of characters
+                if (!popupVisible && !firstPopup) {
+                    firstPopup = true;
+                    const windowInnerHeightOffset = Math.min(50, Math.max(0, parseInt((window.innerHeight - 300) / 64)));
+                    const newlineCount = (newContent.match(/<br\s*\/?>/gi) || []).length;
+                    const popupTopOffset = Math.min(30, Math.floor(newContent.length / (5 + windowInnerHeightOffset)));
+                    const popupTop = 40 - popupTopOffset - newlineCount;
+                    popup.style.top = `${popupTop}%`;
+                }
+
                 if (popupVisible) {
                     const titleEl = popup.querySelector('.popup-header .color-4');
                     const contentEl = popup.querySelector('.popup-content');
@@ -191,7 +209,7 @@
                     return;
                 }
 
-                if (displayMethod === 'popup' || displayMethod === 'tooltip-popup') popupMethod(popupId, newTitle, newContent);
+                if (usePopup) popupMethod(popupId, newTitle, newContent);
 
                 event.stopPropagation();
                 event.preventDefault();
@@ -215,7 +233,7 @@
                                 if (debug) console.log(`[${pluginName}] Frequency changed:`, freq);
 
                                 setTimeout(() => { // Might execute too quickly without a delay
-                                    updateTooltip(freq);
+                                    updateNotes(freq);
                                 }, 100);
 
                                 return;
@@ -239,7 +257,7 @@
                 if (freqHeading.querySelector('.' + noteIcon)) return;
 
                 const infoIcon = document.createElement('i');
-                infoIcon.classList.add('fa-solid', noteIcon, 'tooltip');
+                if (useTooltip) infoIcon.classList.add('fa-solid', noteIcon, 'tooltip');
                 infoIcon.style.position = 'absolute';
                 infoIcon.style.width = '36px';
                 infoIcon.style.top = '50%';
@@ -253,7 +271,7 @@
 
         getFreq();
         drawIcon();
-    });
+    });  // End of plugin
 
     // Function for update notification in /setup
     function checkUpdate(setupOnly, pluginName, urlUpdateLink, urlFetchLink) {
