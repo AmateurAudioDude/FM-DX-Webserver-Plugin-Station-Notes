@@ -8,6 +8,8 @@
 (() => {
 
     const displayMethod = 'popup' // 'popup', 'tooltip', 'tooltip-popup'
+    const TopOffset = 28;
+    const LeftOffset = 60;
 
     const pluginName = "Station Notes";
     const pluginVersion = '1.0.1';
@@ -198,11 +200,11 @@
                         const windowHeight = window.innerHeight;
                         const windowWidth = window.innerWidth;
 
-                        const desiredBottom = windowHeight / 2 - 28; // Top offset
+                        const desiredBottom = windowHeight / 2 - TopOffset; // Top offset
                         let popupTop = desiredBottom - popupHeight;
                         popupTop = Math.max(10, Math.min(windowHeight - popupHeight - 10, popupTop));
 
-                        let popupLeft = windowWidth / 2 - popupWidth / 2 - 60; // Left offset
+                        let popupLeft = windowWidth / 2 - popupWidth / 2 - LeftOffset; // Left offset
                         popupLeft = Math.max(10, Math.min(windowWidth - popupWidth - 10, popupLeft));
 
                         popup.style.top = `${popupTop}px`;
