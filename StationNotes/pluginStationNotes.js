@@ -188,14 +188,26 @@
                 const newTitle = `Notes for ${freq} MHz`;
                 const newContent = `<p style="text-align: center;">${stationNotesHTML}</p>`;
 
-                // Offset formula based on new lines and number of characters
+                // Offset formula
                 if (!popupVisible && !firstPopup) {
                     firstPopup = true;
-                    const windowInnerHeightOffset = Math.min(50, Math.max(0, parseInt((window.innerHeight - 300) / 64)));
-                    const newlineCount = (newContent.match(/<br\s*\/?>/gi) || []).length;
-                    const popupTopOffset = Math.min(30, Math.floor(newContent.length / (5 + windowInnerHeightOffset)));
-                    const popupTop = 40 - popupTopOffset - newlineCount;
-                    popup.style.top = `${popupTop}%`;
+
+                    requestAnimationFrame(() => {
+                        const popupHeight = popup.offsetHeight;
+                        const popupWidth = popup.offsetWidth;
+                        const windowHeight = window.innerHeight;
+                        const windowWidth = window.innerWidth;
+
+                        const desiredBottom = windowHeight / 2 - 28; // Top offset
+                        let popupTop = desiredBottom - popupHeight;
+                        popupTop = Math.max(10, Math.min(windowHeight - popupHeight - 10, popupTop));
+
+                        let popupLeft = windowWidth / 2 - popupWidth / 2 - 60; // Left offset
+                        popupLeft = Math.max(10, Math.min(windowWidth - popupWidth - 10, popupLeft));
+
+                        popup.style.top = `${popupTop}px`;
+                        popup.style.left = `${popupLeft}px`;
+                    });
                 }
 
                 if (popupVisible) {
